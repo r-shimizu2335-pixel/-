@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>すきっぷカロリー</title>
+<style>
+:root{--bg:#FFF4E8;--card:#fff;--ink:#3A2410;--sub:#7A6249;--pink:#FBBA7A;--mint:#6495ED;--mint-text:#3A67BF;--deep:#B35A06;--sun:#3A2410;--line:#F6DCBC;--on-pink:#3A2410;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#22170D;--card:#32241A;--ink:#FFF0E0;--sub:#C9AE92;--line:#4A3624;--pink:#FBBA7A;--mint:#7FA8F2;--mint-text:#9DBDF7;--deep:#FAA755;--sun:#FFF0E0}}
+:root[data-theme="dark"]{--bg:#22170D;--card:#32241A;--ink:#FFF0E0;--sub:#C9AE92;--line:#4A3624;--pink:#FBBA7A;--mint:#7FA8F2;--mint-text:#9DBDF7;--deep:#FAA755;--sun:#FFF0E0}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;font-weight:500;line-height:1.6}
+main{max-width:520px;margin:0 auto;padding:20px 16px 130px}
+h1{font-size:18px;margin:0 0 14px;font-weight:900}
+.hero{background:var(--pink);color:var(--on-pink);border-radius:28px;padding:22px 20px;text-align:center;position:relative;overflow:hidden}
+.hero p{margin:0;font-weight:700;font-size:14px}
+.big{font-size:64px;font-weight:900;line-height:1.1;letter-spacing:-1px}
+.big small{font-size:24px;margin-left:4px}
+.hero .fat{display:inline-block;background:rgba(255,255,255,.22);border-radius:99px;padding:4px 14px;font-size:13px;font-weight:700;margin-top:8px}
+.bump{animation:bump .5s}
+@keyframes bump{40%{transform:scale(1.12)}}
+.today{display:flex;gap:10px;margin:12px 0 22px}
+.today div{flex:1;background:var(--card);border-radius:18px;padding:10px 12px;border:2px solid var(--line)}
+.today b{display:block;font-size:20px;font-weight:900}
+.today span{font-size:12px;color:var(--sub)}
+h2{font-size:15px;margin:0 0 4px;font-weight:900}
+.hint{font-size:12px;color:var(--sub);margin:0 0 10px}
+.search{width:100%;font:inherit;font-size:15px;padding:12px 16px;margin:0 0 10px;border-radius:99px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.noresult{grid-column:1/-1;background:var(--card);border:2px dashed var(--line);border-radius:16px;padding:18px;text-align:center;color:var(--sub);font-size:14px}
+.chips{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;cursor:grab;margin:0 -16px 10px;padding:2px 16px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:none;font:inherit;font-weight:700;font-size:13px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer}.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.food{appearance:none;font:inherit;color:inherit;text-align:center;background:var(--card);border:3px solid var(--line);border-radius:22px;padding:14px 8px 12px;cursor:pointer;position:relative;transition:transform .12s,border-color .12s,background .12s}
+.food:active{transform:scale(.95)}
+.food .e{display:block;font-size:40px;line-height:1.2}
+.food .n{display:block;font-weight:700;font-size:14px;margin-top:2px}
+.food .k{display:block;font-size:12px;color:var(--sub)}
+.food[aria-pressed="true"]{border-color:var(--mint);background:color-mix(in srgb,var(--mint) 16%,var(--card))}
+.food[aria-pressed="true"]::after{content:"✓";position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--mint);color:var(--on-pink);font-weight:900;font-size:14px;line-height:24px}
+.food:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.add{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.add input{flex:1 1 120px;min-width:0;font:inherit;padding:10px 12px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.add input[type=number]{flex:0 0 100px}
+.btn2{font:inherit;font-weight:700;border:0;border-radius:14px;padding:10px 16px;background:var(--ink);color:var(--bg);cursor:pointer}
+.log{margin-top:26px}
+.row{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:10px 14px;margin-bottom:8px;border:2px solid var(--line)}
+.row .e{font-size:26px}
+.row .t{flex:1;font-weight:700;font-size:14px}
+.row .t small{display:block;font-weight:500;color:var(--sub);font-size:11px}
+.row b{color:var(--mint-text);font-weight:900}
+.row button{border:0;background:none;color:var(--sub);font-size:18px;cursor:pointer;padding:4px 8px}
+.empty{background:var(--card);border:2px dashed var(--line);border-radius:16px;padding:18px;text-align:center;color:var(--sub);font-size:14px}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:2px solid var(--line);z-index:5}
+.bar>div{max-width:520px;margin:0 auto}
+.go{width:100%;font:inherit;font-weight:900;font-size:17px;border:0;border-radius:99px;padding:15px;background:var(--mint);color:#0B1F44;cursor:pointer;transition:transform .12s}
+.go:active{transform:scale(.97)}
+.go:disabled{background:var(--line);color:var(--sub);cursor:default}
+.toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);background:var(--ink);color:var(--bg);padding:12px 22px;border-radius:99px;font-weight:900;z-index:9;transition:transform .35s cubic-bezier(.3,1.4,.5,1);white-space:nowrap}
+.toast.on{transform:translate(-50%,0)}
+.reset{display:block;margin:18px auto 0;background:none;border:0;color:var(--sub);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>🍃 すきっぷカロリー</h1>
+<section class="hero" aria-live="polite">
+<p>これまで我慢したカロリー</p>
+<div class="big" id="total"><span id="num">0</span><small>kcal</small></div>
+<span class="fat" id="fat">まずは1個スキップしてみよう</span>
+</section>
+<div class="today">
+<div><b id="tk">0</b><span>今日のセーブ(kcal)</span></div>
+<div><b id="tc">0</b><span>今日我慢した数</span></div>
+</div>
+<h2>今日、我慢したものは？</h2>
+<p class="hint">タップで選んで、まとめて登録できます</p>
+<input class="search" id="q" type="search" placeholder="食べ物・お店で検索(例:ポテト、スタバ)" aria-label="食べ物やお店を検索" autocomplete="off">
+<div class="chips" id="chips" role="group" aria-label="お店で絞り込む"></div>
+<div class="grid" id="grid"><div class="noresult" id="boot">読み込み中… この表示が消えないときは、ページを閉じて開き直してください。</div></div>
+<form class="add" id="addf" onsubmit="return false">
+<input id="cn" placeholder="食べ物の名前" maxlength="12" aria-label="食べ物の名前">
+<input id="ck" type="number" inputmode="numeric" placeholder="kcal" min="1" max="5000" aria-label="カロリー">
+<button class="btn2" id="addb" type="button">カードを追加</button>
+</form>
+<section class="log">
+<h2>スキップのきろく</h2>
+<div id="log"></div>
+<button class="reset" id="reset" type="button">すべてのきろくを消す</button>
+</section>
+<p class="hint" style="margin-top:18px">※ お店のカロリーは公開情報をもとにした目安です(サイズ・時期・メニュー改定で変わります)。「やせました」は回避したカロリーを身近な食べ物に例えた表示です。</p>
+</main>
+<div class="bar"><div><button class="go" id="go" disabled>食べ物を選んでね</button></div></div>
+<div class="toast" id="toast" role="status"></div>
+<script id="app" type="text/plain">
+window.onerror=function(m,s,l){var g=document.getElementById("grid");if(g&&g.children.length<=1){g.textContent="表示エラー: "+m+" ("+l+"行目)";}};
+var M="マクドナルド",D="ミスド",SB="スタバ",K="ケンタッキー",G="牛丼",SE="セブン-イレブン",LW="ローソン",FM="ファミリーマート",GC="ゴンチャ",O="その他";
+var BASE=[
+["ビッグマック","🍔",525,M],["ダブルチーズバーガー","🍔",459,M],["てりやきマックバーガー","🍔",477,M],["フィレオフィッシュ","🐟",338,M],["チキンマックナゲット 5ピース","🍗",262,M],["マックフライポテト S","🍟",224,M],["マックフライポテト M","🍟",409,M],["マックフライポテト L","🍟",515,M],["マックチキン","🍔",383,M],["ホットアップルパイ","🥧",211,M],["ソフトツイスト","🍦",146,M],
+["ポン・デ・リング","🍩",217,D],["オールドファッション","🍩",293,D],["チョコファッション","🍩",330,D],["フレンチクルーラー","🍩",154,D],["エンゼルクリーム","🍩",201,D],["ゴールデンチョコレート","🍩",274,D],
+["コーヒーフラペチーノ(トール)","🥤",183,SB],["コーヒーフラペチーノ(グランデ)","🥤",262,SB],["ダークモカチップフラペチーノ(トール)","🥤",341,SB],["ダークモカチップフラペチーノ(グランデ)","🥤",486,SB],["キャラメルフラペチーノ(トール)","🥤",302,SB],["キャラメルフラペチーノ(グランデ)","🥤",420,SB],["抹茶クリームフラペチーノ(トール)","🥤",322,SB],["抹茶クリームフラペチーノ(グランデ)","🥤",457,SB],["バニラクリームフラペチーノ(トール)","🥤",255,SB],["バニラクリームフラペチーノ(グランデ)","🥤",357,SB],["マンゴーパッションティーフラペチーノ(トール)","🥤",140,SB],["エスプレッソアフォガートフラペチーノ(トール)","🥤",438,SB],["ラテ ホット(トール)","☕",223,SB],["カフェモカ ホット(トール)","☕",399,SB],["シュガードーナツ","🍩",195,SB],
+["ブラックティー+パール(M)","🧋",162,GC],["ブラックミルクティー+パール(M)","🧋",376,GC],["アールグレイミルクティー+パール(M)","🧋",348,GC],["一番摘み抹茶ミルクティー+パール(M)","🧋",425,GC],["焙じ茶ミルクティー+パール(M)","🧋",409,GC],["黒糖ミルクブラックティー+パール(M)","🧋",413,GC],["黒糖ミルクウーロンティー+パール(M)","🧋",413,GC],
+["オリジナルチキン","🍗",218,K],["カーネルクリスピー","🍗",119,K],["ナゲット 5ピース","🍗",222,K],["チキンフィレバーガー","🍔",398,K],["和風チキンカツバーガー","🍔",426,K],["ダブルチキンフィレバーガー","🍔",615,K],["てりやきツイスター","🌯",360,K],["ビスケット","🥐",200,K],
+["吉野家 牛丼(並盛)","🍚",633,G],["すき家 牛丼(並盛)","🍚",733,G],["松屋 牛めし(並盛)","🍚",715,G],
+["ななチキ","🍗",173,SE],["揚げ鶏","🍗",185,SE],["おにぎり ツナマヨ","🍙",259,SE],["おにぎり 紅しゃけ","🍙",174,SE],["おにぎり 昆布","🍙",170,SE],["肉まん","🥟",205,SE],
+["からあげクン レギュラー","🍗",226,LW],["からあげクン レッド","🍗",225,LW],["Lチキ レギュラー","🍗",270,LW],
+["ファミチキ","🍗",252,FM],
+["から揚げ","🍗",400,O],["ショートケーキ","🍰",330,O],["ラーメン","🍜",750,O],["ポテチ(1袋)","🥔",330,O],["チョコ","🍫",280,O],["アイス","🍦",250,O],["菓子パン","🥐",400,O]];
+var S={custom:[],log:[]};
+function load(){try{var r=localStorage.getItem("skipcal");if(r){var d=JSON.parse(r);if(d&&d.log){S=d;if(!S.custom)S.custom=[];}}}catch(e){}}
+function save(){try{localStorage.setItem("skipcal",JSON.stringify(S));}catch(e){}}
+var sel={};
+var $=function(i){return document.getElementById(i)};
+function foods(){return BASE.concat(S.custom)}
+function sum(a){return a.reduce(function(t,x){return t+x.kcal},0)}
+function sameDay(ts){return new Date(ts).toDateString()===new Date().toDateString()}
+var FILTER="すべて",QUERY="";
+function norm(s){return s.toLowerCase().replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+96)}).replace(/[\s　]/g,"")}
+function pre(f){var c=f[3];return(c&&c!==G&&c!==O)?c+" ":""}
+function renderChips(){
+ var c=["すべて"];foods().forEach(function(f){var k=f[3]||O;if(c.indexOf(k)<0)c.push(k)});
+ var el=$("chips"),sl=el.scrollLeft;el.innerHTML="";
+ c.forEach(function(k){var b=document.createElement("button");b.type="button";b.className="chip";b.textContent=k;b.setAttribute("aria-pressed",k===FILTER?"true":"false");b.onclick=function(){FILTER=k;renderGrid();};el.appendChild(b);});
+ el.scrollLeft=sl;
+}
+function renderGrid(){
+ renderChips();
+ var g=$("grid");g.innerHTML="";
+ foods().forEach(function(f,i){
+  if(FILTER!=="すべて"&&(f[3]||O)!==FILTER)return;
+  if(QUERY&&norm((f[3]||O)+f[0]).indexOf(norm(QUERY))<0)return;
+  var b=document.createElement("button");b.type="button";b.className="food";
+  b.setAttribute("aria-pressed",sel[i]?"true":"false");
+  var e=document.createElement("span");e.className="e";e.textContent=f[1];
+  var n=document.createElement("span");n.className="n";n.textContent=f[0];
+  var k=document.createElement("span");k.className="k";k.textContent=(FILTER==="すべて"?pre(f):"")+f[2]+" kcal";
+  b.appendChild(e);b.appendChild(n);b.appendChild(k);
+  b.onclick=function(){if(sel[i])delete sel[i];else sel[i]=1;renderGrid();renderBar();};
+  g.appendChild(b);
+ });
+ if(!g.children.length){var nr=document.createElement("div");nr.className="noresult";nr.textContent="見つかりません。別の言葉で探すか、下の「カードを追加」で自分用のカードを作ってください。";g.appendChild(nr);}
+}
+function renderBar(){
+ var ids=Object.keys(sel),b=$("go");
+ if(!ids.length){b.disabled=true;b.textContent="食べ物を選んでね";return;}
+ b.disabled=false;b.textContent=ids.length+"個スキップ！";
+}
+var LADDER=[[0,"🍬","あめ玉","個",20],[60,"🍌","バナナ","本",90],[120,"🍙","おにぎり","個",170],[200,"🍦","ソフトクリーム","個",250],[300,"🍰","ショートケーキ","個",350],[450,"🍔","ハンバーガー","個",500],[600,"🍚","牛丼(並)","杯",650],[700,"🍜","ラーメン","杯",750],[800,"🍱","かつ丼","杯",850],[900,"🍛","カレーライス","杯",950]];
+function equiv(t){
+ if(t<=0)return "まずは1個スキップしてみよう";
+ var it=LADDER[0];LADDER.forEach(function(l){if(t>=l[0])it=l});
+ var n=Math.max(1,Math.round(t/it[4]));
+ return it[1]+" "+it[2]+"約"+n+it[3]+"分 やせました！";
+}
+function renderStats(bump){
+ var t=sum(S.log),td=S.log.filter(function(x){return sameDay(x.ts)});
+ $("num").textContent=t.toLocaleString("ja-JP");
+ $("fat").textContent=equiv(t);
+ $("tk").textContent=sum(td).toLocaleString("ja-JP");$("tc").textContent=td.length;
+ if(bump){var n=$("total");n.classList.remove("bump");void n.offsetWidth;n.classList.add("bump");}
+}
+function renderLog(){
+ var el=$("log");el.innerHTML="";
+ if(!S.log.length){var d=document.createElement("div");d.className="empty";d.textContent="まだありません。誘惑に勝ったら、カードをタップして登録しましょう。";el.appendChild(d);$("reset").style.display="none";return;}
+ $("reset").style.display="block";
+ S.log.slice().reverse().slice(0,30).forEach(function(x){
+  var r=document.createElement("div");r.className="row";
+  var e=document.createElement("span");e.className="e";e.textContent=x.emoji;
+  var t=document.createElement("div");t.className="t";t.textContent=x.name;
+  var dt=new Date(x.ts),s=document.createElement("small");
+  s.textContent=(dt.getMonth()+1)+"/"+dt.getDate()+" "+("0"+dt.getHours()).slice(-2)+":"+("0"+dt.getMinutes()).slice(-2);
+  t.appendChild(s);
+  var b=document.createElement("b");b.textContent="+"+x.kcal;
+  var del=document.createElement("button");del.type="button";del.textContent="✕";del.setAttribute("aria-label",x.name+"のきろくを消す");
+  del.onclick=function(){S.log=S.log.filter(function(y){return y.id!==x.id});save();renderAll();};
+  r.appendChild(e);r.appendChild(t);r.appendChild(b);r.appendChild(del);el.appendChild(r);
+ });
+}
+function renderAll(bump){renderGrid();renderBar();renderStats(bump);renderLog();}
+var tt;
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on")},2400);}
+$("go").onclick=function(){
+ var ids=Object.keys(sel);if(!ids.length)return;
+ var now=Date.now(),k=0;
+ ids.forEach(function(i,j){var f=foods()[i];k+=f[2];S.log.push({id:now+"-"+j,name:pre(f)+f[0],emoji:f[1],kcal:f[2],ts:now});});
+ sel={};save();renderAll(true);toast(k+"kcal セーブ！えらい！");
+};
+$("addb").onclick=function(){
+ var n=$("cn").value.trim(),k=parseInt($("ck").value,10);
+ if(!n||!k||k<1){toast("名前とkcalを入れてください");return;}
+ if(k>5000){toast("kcalは5000以下で入れてください");return;}
+ S.custom.push([n,"🍽️",k]);save();$("cn").value="";$("ck").value="";renderAll();toast("カードを追加しました");
+};
+$("reset").onclick=function(){if(confirm("すべてのきろくを消します。よろしいですか？")){S.log=[];save();renderAll();}};
+(function(){var el=$("chips"),down=false,sx=0,sl=0,moved=false;
+ el.addEventListener("pointerdown",function(e){if(e.pointerType!=="mouse")return;down=true;moved=false;sx=e.clientX;sl=el.scrollLeft;});
+ window.addEventListener("pointermove",function(e){if(!down)return;var dx=e.clientX-sx;if(Math.abs(dx)>4)moved=true;el.scrollLeft=sl-dx;});
+ window.addEventListener("pointerup",function(){down=false;});
+ el.addEventListener("click",function(e){if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
+})();
+$("q").oninput=function(){QUERY=this.value;renderGrid();};
+load();renderAll();
+</script>
+<script>
+(function(){
+ var g=document.getElementById("grid");
+ function show(t){g.textContent="診断: "+t;}
+ try{
+  (0,eval)(document.getElementById("app").textContent);
+  if(document.getElementById("boot"))show("実行は終わったが一覧が作られていません");
+ }catch(e){
+  show(e.name+" / "+e.message+" / 行"+(e.line||"?")+" 列"+(e.column||"?"));
+ }
+})();
+</script>
+</body>
+</html>
