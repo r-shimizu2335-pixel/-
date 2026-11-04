@@ -27,6 +27,8 @@ h1{font-size:18px;margin:0 0 14px;font-weight:900}
 .today span{font-size:12px;color:var(--sub)}
 h2{font-size:15px;margin:0 0 4px;font-weight:900}
 .hint{font-size:12px;color:var(--sub);margin:0 0 10px}
+.tabs{display:flex;gap:8px;margin:0 0 14px}.tab{flex:1;font:inherit;font-weight:700;font-size:15px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:9px;cursor:pointer}.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chart{display:flex;align-items:flex-end;gap:8px;height:200px;background:var(--card);border:2px solid var(--line);border-radius:22px;padding:14px 10px 10px;margin-bottom:22px}.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0}.col .v{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:3px;white-space:nowrap}.col .b{width:100%;max-width:34px;border-radius:10px 10px 4px 4px;background:var(--pink);min-height:4px}.col.now .b{background:var(--mint)}.col .d{font-size:11px;color:var(--sub);margin-top:5px;line-height:1.3;text-align:center}
 .search{width:100%;font:inherit;font-size:15px;padding:12px 16px;margin:0 0 10px;border-radius:99px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
 .noresult{grid-column:1/-1;background:var(--card);border:2px dashed var(--line);border-radius:16px;padding:18px;text-align:center;color:var(--sub);font-size:14px}
 .chips{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;cursor:grab;margin:0 -16px 10px;padding:2px 16px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:none;font:inherit;font-weight:700;font-size:13px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer}.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -65,8 +67,10 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <body>
 <main>
 <h1>🍃 すきっぷカロリー</h1>
+<div class="tabs" role="group" aria-label="ページの切り替え"><button class="tab" id="t1" type="button" aria-pressed="true">今日</button><button class="tab" id="t2" type="button" aria-pressed="false">一週間</button></div>
+<div id="vToday">
 <section class="hero" aria-live="polite">
-<p>これまで我慢したカロリー</p>
+<p>今日我慢したカロリー</p>
 <div class="big" id="total"><span id="num">0</span><small>kcal</small></div>
 <span class="fat" id="fat">まずは1個スキップしてみよう</span>
 </section>
@@ -90,6 +94,8 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <button class="reset" id="reset" type="button">すべてのきろくを消す</button>
 </section>
 <p class="hint" style="margin-top:18px">※ お店のカロリーは公開情報をもとにした目安です(サイズ・時期・メニュー改定で変わります)。「やせました」は回避したカロリーを身近な食べ物に例えた表示です。</p>
+</div>
+<div id="vWeek" hidden></div>
 </main>
 <div class="bar"><div><button class="go" id="go" disabled>食べ物を選んでね</button></div></div>
 <div class="toast" id="toast" role="status"></div>
@@ -154,7 +160,7 @@ function equiv(t){
  return it[1]+" "+it[2]+"約"+n+it[3]+"分 やせました！";
 }
 function renderStats(bump){
- var t=sum(S.log),td=S.log.filter(function(x){return sameDay(x.ts)});
+ var td=S.log.filter(function(x){return sameDay(x.ts)}),t=sum(td);
  $("num").textContent=t.toLocaleString("ja-JP");
  $("fat").textContent=equiv(t);
  $("tk").textContent=sum(td).toLocaleString("ja-JP");$("tc").textContent=td.length;
@@ -199,6 +205,58 @@ $("reset").onclick=function(){if(confirm("すべてのきろくを消します�
  window.addEventListener("pointerup",function(){down=false;});
  el.addEventListener("click",function(e){if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
 })();
+function mk(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+function dkey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function setView(v){
+ $("vToday").hidden=(v!=="today");$("vWeek").hidden=(v!=="week");
+ $("t1").setAttribute("aria-pressed",v==="today"?"true":"false");
+ $("t2").setAttribute("aria-pressed",v==="week"?"true":"false");
+ document.querySelector(".bar").style.display=(v==="today"?"":"none");
+ if(v==="week")renderWeek();
+ window.scrollTo(0,0);
+}
+function renderWeek(){
+ var WD=["日","月","火","水","木","金","土"],now=new Date(),days=[],idx={},cnt={},i,d;
+ for(i=6;i>=0;i--){d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);idx[dkey(d)]=days.length;days.push({d:d,kcal:0,n:0});}
+ S.log.forEach(function(x){
+  var k=dkey(new Date(x.ts));if(!(k in idx))return;
+  var o=days[idx[k]];o.kcal+=x.kcal;o.n++;
+  var c=cnt[x.name]||(cnt[x.name]={name:x.name,emoji:x.emoji,n:0,kcal:0});c.n++;c.kcal+=x.kcal;
+ });
+ var tot=0,num=0,max=1;
+ days.forEach(function(x){tot+=x.kcal;num+=x.n;if(x.kcal>max)max=x.kcal});
+ var root=$("vWeek");root.innerHTML="";
+ var hero=mk("section","hero");
+ hero.appendChild(mk("p","","この一週間で我慢したカロリー"));
+ var big=mk("div","big");big.appendChild(mk("span","",tot.toLocaleString("ja-JP")));big.appendChild(mk("small","","kcal"));
+ hero.appendChild(big);
+ hero.appendChild(mk("span","fat",tot>0?equiv(tot):"まだきろくがありません"));
+ root.appendChild(hero);
+ var st=mk("div","today");
+ var a=mk("div");a.appendChild(mk("b","",String(num)));a.appendChild(mk("span","","我慢した数"));
+ var b=mk("div");b.appendChild(mk("b","",Math.round(tot/7).toLocaleString("ja-JP")));b.appendChild(mk("span","","1日の平均(kcal)"));
+ st.appendChild(a);st.appendChild(b);root.appendChild(st);
+ root.appendChild(mk("h2","","1日ごとのきろく"));
+ root.appendChild(mk("p","hint","いちばん右が今日です(青い棒)"));
+ var ch=mk("div","chart");
+ days.forEach(function(x,j){
+  var col=mk("div","col"+(j===6?" now":""));
+  col.appendChild(mk("div","v",x.kcal>0?String(x.kcal):""));
+  var bar=mk("div","b");bar.style.height=Math.round(x.kcal/max*100)+"px";
+  col.appendChild(bar);
+  var lb=mk("div","d");lb.appendChild(mk("div","",WD[x.d.getDay()]));lb.appendChild(mk("div","",(x.d.getMonth()+1)+"/"+x.d.getDate()));
+  col.appendChild(lb);ch.appendChild(col);
+ });
+ root.appendChild(ch);
+ var top=Object.keys(cnt).map(function(k){return cnt[k]}).sort(function(p,q){return q.n-p.n||q.kcal-p.kcal}).slice(0,3);
+ root.appendChild(mk("h2","","よく我慢したもの"));
+ if(!top.length){root.appendChild(mk("div","empty","この一週間のきろくはまだありません。"));}
+ top.forEach(function(x){
+  var r=mk("div","row");r.appendChild(mk("span","e",x.emoji));
+  r.appendChild(mk("div","t",x.name));r.appendChild(mk("b","",x.n+"回 / "+x.kcal+" kcal"));root.appendChild(r);
+ });
+}
+$("t1").onclick=function(){setView("today")};$("t2").onclick=function(){setView("week")};
 $("q").oninput=function(){QUERY=this.value;renderGrid();};
 load();renderAll();
 </script>
