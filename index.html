@@ -84,10 +84,11 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <div class="chips" id="chips" role="group" aria-label="お店で絞り込む"></div>
 <div class="grid" id="grid"><div class="noresult" id="boot">読み込み中… この表示が消えないときは、ページを閉じて開き直してください。</div></div>
 <form class="add" id="addf" onsubmit="return false">
-<input id="cn" placeholder="食べ物の名前" maxlength="12" aria-label="食べ物の名前">
+<input id="cn" placeholder="食べ物の名前" maxlength="24" list="fl" autocomplete="off" aria-label="食べ物の名前"><datalist id="fl"></datalist>
 <input id="ck" type="number" inputmode="numeric" placeholder="kcal" min="1" max="5000" aria-label="カロリー">
 <button class="btn2" id="addb" type="button">カードを追加</button>
 </form>
+<p class="hint" id="addhint" style="margin-top:6px"></p>
 <section class="log">
 <h2>スキップのきろく</h2>
 <div id="log"></div>
@@ -183,7 +184,7 @@ function renderLog(){
   r.appendChild(e);r.appendChild(t);r.appendChild(b);r.appendChild(del);el.appendChild(r);
  });
 }
-function renderAll(bump){renderGrid();renderBar();renderStats(bump);renderLog();}
+function renderAll(bump){renderGrid();renderBar();renderStats(bump);renderLog();fillList();}
 var tt;
 function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("on")},2400);}
 $("go").onclick=function(){
@@ -196,6 +197,8 @@ $("addb").onclick=function(){
  var n=$("cn").value.trim(),k=parseInt($("ck").value,10);
  if(!n||!k||k<1){toast("名前とkcalを入れてください");return;}
  if(k>5000){toast("kcalは5000以下で入れてください");return;}
+ var dup=foods().filter(function(f){return key(f[0])===key(n)||raw(f[0])===raw(n)})[0];
+ if(dup){FILTER="すべて";QUERY=dup[0];$("q").value=dup[0];renderGrid();toast("「"+dup[0]+"」はすでにあります");return;}
  S.custom.push([n,"🍽️",k]);save();$("cn").value="";$("ck").value="";renderAll();toast("カードを追加しました");
 };
 $("reset").onclick=function(){if(confirm("すべてのきろくを消します。よろしいですか？")){S.log=[];save();renderAll();}};
@@ -256,6 +259,70 @@ function renderWeek(){
   r.appendChild(mk("div","t",x.name));r.appendChild(mk("b","",x.n+"回 / "+x.kcal+" kcal"));root.appendChild(r);
  });
 }
+function fillList(){
+ var dl=$("fl"),seen={};dl.innerHTML="";
+ foods().forEach(function(f){if(seen[f[0]])return;seen[f[0]]=1;var o=document.createElement("option");o.value=f[0];dl.appendChild(o);});
+}
+var autoVal=null;
+function fillKcal(){
+ var q=key($("cn").value),r=raw($("cn").value),k=$("ck");
+ if(!(k.value===""||k.value===String(autoVal)))return;
+ var v=null;
+ if(q.length>=1){
+  var all=foods(),ex=all.filter(function(f){return key(f[0])===q||raw(f[0])===r});
+  var c=ex.length?ex:(q.length>=2?all.filter(function(f){return key(f[0]).indexOf(q)>=0||raw(f[0]).indexOf(r)>=0}):[]);
+  if(c.length&&c.every(function(f){return f[2]===c[0][2]}))v=c[0][2];
+ }
+ var nm=$("cn").value.trim(),h=$("addhint"),src=null;aiSeq++;clearTimeout(aiT);h.textContent="";
+ if(ex&&ex.length)h.textContent="「"+ex[0][0]+"」はすでにあります(追加はできません)";
+ if(v===null&&q.length>=1){src=lookupRef(q,r);if(src)v=src[2];}
+ if(v===null){
+  if(k.value===String(autoVal))k.value="";autoVal=null;
+  if(nm.length>=2&&k.value==="")aiT=setTimeout(function(){estimate(nm)},900);
+ }else{k.value=String(v);autoVal=v;if(src)h.textContent="「"+src[0]+" "+src[1]+"」の数字です(出典:810810.co.jp カロリー表)";}
+}
+function lookupRef(q,r){
+ var ex=REF.filter(function(x){return key(x[0])===q||raw(x[0])===r});
+ if(ex.length)return ex[0];
+ if(q.length<2)return null;
+ var c=REF.filter(function(x){return key(x[0]).indexOf(q)>=0||raw(x[0]).indexOf(r)>=0});
+ return c.length?c[0]:null;
+}
+var YOMI={"ご飯":"ゴハン","玄米ご飯":"ゲンマイゴハン","赤飯":"セキハン","おにぎり(梅干し)":"オニギリウメボシ","全粥":"ゼンガユ","切り餅":"キリモチ","精白米":"セイハクマイ","食パン":"ショクパン","サンドイッチ用食パン":"サンドイッチヨウショクパン","長いも":"ナガイモ","えび芮":"エビイモ","絹ごし豆腐":"キヌゴシトウフ","木綿豆腐":"モメントウフ","厚揚げ":"アツアゲ","油揚げ":"アブラアゲ","高野豆腐":"コウヤドウフ","湯葉(生)":"ユバナマ","納豆":"ナットウ","豆乳":"トウニュウ","きな粉":"キナコ","うぐいす豆":"ウグイスマメ","金時豆":"キントキマメ","銀だら":"ギンダラ","金目鯛":"キンメダイ","辛子明太子":"カラシメンタイコ","さつま揚げ":"サツマアゲ","桃":"モモ","柿":"カキ","桃缶":"モモカン","生クリーム":"ナマクリーム","鶏卵(M)":"ケイランM","鶏卵(L)":"ケイランL","うずら卵":"ウズラタマゴ","普通牛乳":"フツウギュウニュウ","ピザ用チーズ":"ピザヨウチーズ","大福":"ダイフク","くず饌頭":"クズマンジュウ","水羊かん":"ミズヨウカン","たいやき":"タイヤキ","今川焼き":"イマガワヤキ","草もち":"クサモチ","桜餅":"サクラモチ","最中":"モナカ","塩せんべい":"シオセンベイ","牛もも肉":"ギュウモモニク","牛バラ肉":"ギュウバラニク","豚肩ロース肉":"ブタカタロースニク","豚もも肉":"ブタモモニク","鶏もも肉(皮付き)":"トリモモニクカワツキ","鶏むね肉(皮付き)":"トリムネニクカワツキ","鶏ささ身":"トリササミ","合びき肉":"アイビキニク","発泡酒":"ハッポウシュ","赤ワイン":"アカワイン","白ワイン":"シロワイン","日本酒":"ニホンシュ","焼酒":"ショウチュウ","梅酒":"ウメシュ","から揚げ":"カラアゲ","唐揚げ":"カラアゲ","菓子パン":"カシパン","肉まん":"ニクマン","揚げ鶏":"アゲドリ","揚げ鳥":"アゲドリ","牛丼":"ギュウドン"};
+function cl(s){return norm(s).replace(/[()（）・\-+]/g,"")}
+function raw(s){return cl(s)}
+function key(s){var y=YOMI[String(s).trim()];return cl(y||s)}
+var REF=[
+["ご飯","1杯(150g)",252],["玄米ご飯","1杯(150g)",248],["赤飯","1杯(150g)",284],["おにぎり(梅干し)","1個(90g)",140],["全粥","1人前(250g)",178],["切り餅","1個(55g)",129],["精白米","1合(150g)",534],["食パン","1枚(6枚切り60g)",156],["サンドイッチ用食パン","1枚(22g)",58],["クロワッサン","1個(40g)",178],["バターロール","1個(30g)",95],["フランスパン","1切(30g)",84],["そば(ゆで)","1玉(170g)",224],["そば(干し)","1束(100g)",344],["うどん(ゆで)","1玉(220g)",231],["うどん(干し)","1束(100g)",348],["中華めん(蒸し)","1玉(150g)",297],["そうめん(干し)","1束(50g)",178],["スパゲッティ(乾燥)","1人分(100g)",378],
+["さつまいも","中1本(200g)",264],["長いも","1食分(60g)",39],["さといも","中1個(50g)",29],["えび芮","1個(250g)",243],["しらたき","1玉(200g)",12],["こんにゃく","1枚(250g)",14],
+["あずき(乾)","大さじ 2(20g)",68],["大豆(乾)","100g",417],["大豆(ゆで)","100g",180],["絹ごし豆腐","100g",56],["木綿豆腐","100g",72],["厚揚げ","120g",180],["油揚げ","20g",77],["高野豆腐","1枚(16g)",85],["おから","1C(80g)",71],["湯葉(生)","1枚(30g)",69],["納豆","1パック(50g)",100],["豆乳","200ml(無調整)",92],["きな粉","大さじ 1(8g)",35],["うぐいす豆","30g",72],["金時豆","30g",71],
+["あじ","1尾(150g)",82],["いわし","1尾(100g)",136],["さんま","1尾(100g)",310],["あまだい","1切(120g)",136],["かれい","1切(100g)",95],["銀だら","1切(120g)",264],["金目鯛","1切(100g)",160],["さば","1切(100g)",202],["さわら","1切(100g)",177],["さけ","1切(100g)",133],["ぶり","1切(120g)",308],["すずき","1切(100g)",123],["むつ","1切(120g)",227],["まながつお","1切(150g)",224],["ししゃも","1尾(23g)",41],["あじ開き干し","1尾(90g)",99],["さんま開き干し","1尾(125g)",230],["ほっけ開き干し","1尾(350g)",298],["しらす干し","大さじ 1(6g)",7],["ちりめんじゃこ","大さじ 1(6g)",12],["たらこ","1腹(35g)",49],["辛子明太子","1腹(35g)",44],["いくら","大さじ 1(16g)",44],["ちくわ","小1本",36],["はんぺん","1枚(100g)",94],["かまぼこ","1切(20g)",19],["かに風味かまぼこ","1本",11],["さつま揚げ","1枚(65g)",90],
+["コーヒー(ミルク入り)","1杯",10],["コーヒー(砂糖入り)","1杯",15],["紅茶(ミルク入り)","1杯",10],["紅茶(砂糖入り)","1杯",15],["ココア","1杯",120],["カフェオレ","1杯",80],["サイダー","1杯(200ml)",82],["コーラ","1杯(200ml)",92],["ジュース(天然果汁)","1杯(200ml)",80],["ビール中ビン","500ml",200],["ビール中ジョッキ","570ml",230],["ビールコップ","1杯(200ml)",80],["発泡酒","コップ 1杯(200ml)",90],["赤ワイン","110ml",80],["白ワイン","110ml",80],["ブランデー","60ml",140],["ウイスキー","60ml",135],["日本酒","1合",190],["焼酒","50ml",100],["梅酒","60ml",100],
+["みかん","1個(100g)",37],["オレンジ","1個(200g)",47],["レモン","1個(100g)",24],["さくらんぼ","10粒",30],["キウイフルーツ","1個(100g)",45],["桃","1個(200g)",68],["バナナ","1本(150g)",77],["いちご","5粒(75g)",25],["りんご","中1個(250g)",115],["すいか","1/8切(400g)",89],["メロン","1/2個(250g)",52],["びわ","1個(50g)",14],["ぶどう(巨峰)","1粒(15g)",7],["グレープフルーツ","1個(400g)",106],["柿","1個(170g)",93],["なし","1個(300g)",110],["マンゴー","1/2個(200g)",49],["桃缶","50g",36],["みかん缶","50g",40],["パイナップル缶","40g",34],
+["鶏卵(M)","1個",77],["鶏卵(L)","1個",90],["うずら卵","1個",15],["普通牛乳","200ml",141],["加工乳(低脂肪)","200ml",97],["加工乳(濃厚)","200ml",153],["ヨーグルト(加糖)","100g",77],["ヨーグルト(無糖)","100g",62],["生クリーム","大さじ 1(15g)",65],["プロセスチーズ","20g",80],["カマンベールチーズ","20g",62],["クリームチーズ","20g",69],["ピザ用チーズ","30g",118],
+["チョコレートケーキ","1個",310],["チーズケーキ","1個",260],["モンブラン","1個",300],["アップルパイ","1切(100g)",304],["マドレーヌ","1個",110],["バームクーヘン","100g(直径10cm)",370],["シュークリーム","1個",290],["チョコレート","1かけ",20],["アーモンドチョコレート","1粒",25],["クッキー","1枚",50],["ビスケット","1枚",30],["プリン","1個(150g)",189],["大福","1個(50g)",118],["くず饌頭","1個(40g)",88],["水羊かん","1個(60g)",103],["どらやき","1個(75g)",213],["くし団子(あん)","1本(50g)",101],["くし団子(しょうゆ)","1本(50g)",99],["たいやき","1個(110g)",240],["今川焼き","1個(90g)",200],["おはぎ","1個(100g)",230],["草もち","1個(50g)",115],["桜餅","1個(50g)",100],["かしわもち","1個(50g)",103],["カステラ","1切(50g)",160],["最中","1個(40g)",110],["塩せんべい","1枚(10g)",37],["あられ","1個(5g)",20],["あんみつ","1人前",280],["みつ豆","1人前",190],["おしるこ","1人前",230],
+["牛もも肉","100g",209],["牛バラ肉","100g",454],["豚肩ロース肉","100g",253],["豚もも肉","100g",183],["鶏もも肉(皮付き)","100g",200],["鶏むね肉(皮付き)","100g",191],["鶏ささ身","100g",105],["合びき肉","50g",111],["ロースハム","1本(15g)",29],["ボンレスハム","1本(15g)",18],["ウインナーソーセージ","1本(20g)",64],["ベーコン","1本(20g)",81]];
+var _refEnd=0;
+var aiT=null,aiSeq=0,AI;
+function getAI(){
+ if(AI!==undefined)return Promise.resolve(AI);
+ if(!window.claude||!claude.use){AI=null;return Promise.resolve(null);}
+ return claude.use("sample").then(function(s){AI=s||null;return AI},function(){AI=null;return null});
+}
+function estimate(nm){
+ var seq=aiSeq,k=$("ck"),h=$("addhint");
+ getAI().then(function(s){
+  if(!s||seq!==aiSeq)return;
+  h.textContent="カロリーを調べています…";
+  return s("次の食べ物を1人前(日本で一般的な量)食べたときのおおよそのカロリーを、整数のkcalの数字だけで答えてください。数字以外は書かないでください。食べ物: "+nm,{modelTier:"quick"}).then(function(r){
+   if(seq!==aiSeq)return;
+   var m=String(r&&r.text||"").replace(/[,，]/g,"").match(/\d+/),n=m?parseInt(m[0],10):0;
+   if(n>=1&&n<=5000&&(k.value===""||k.value===String(autoVal))){k.value=String(n);autoVal=n;h.textContent="AIによる目安です。必要であれば直してください。";}
+   else h.textContent="";
+  });
+ }).catch(function(){if(seq===aiSeq)h.textContent="";});
+}
+$("cn").addEventListener("input",fillKcal);
 $("t1").onclick=function(){setView("today")};$("t2").onclick=function(){setView("week")};
 $("q").oninput=function(){QUERY=this.value;renderGrid();};
 load();renderAll();
