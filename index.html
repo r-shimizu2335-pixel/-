@@ -104,7 +104,7 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <div class="toast" id="toast" role="status"></div>
 <script id="app" type="text/plain">
 window.onerror=function(m,s,l){var g=document.getElementById("grid");if(g&&g.children.length<=1){g.textContent="表示エラー: "+m+" ("+l+"行目)";}};
-var M="マクドナルド",D="ミスド",SB="スタバ",K="ケンタッキー",G="牛丼",SE="セブン-イレブン",LW="ローソン",FM="ファミリーマート",GC="ゴンチャ",O="その他";
+var M="マクドナルド",D="ミスド",SB="スタバ",K="ケンタッキー",G="牛丼",SE="セブン-イレブン",LW="ローソン",FM="ファミリーマート",GC="ゴンチャ",ADD="追加したもの",O="その他";
 var BASE=[
 ["ビッグマック","🍔",525,M],["ダブルチーズバーガー","🍔",459,M],["てりやきマックバーガー","🍔",477,M],["フィレオフィッシュ","🐟",338,M],["チキンマックナゲット 5ピース","🍗",262,M],["マックフライポテト S","🍟",224,M],["マックフライポテト M","🍟",409,M],["マックフライポテト L","🍟",515,M],["マックチキン","🍔",383,M],["ホットアップルパイ","🥧",211,M],["ソフトツイスト","🍦",146,M],
 ["ポン・デ・リング","🍩",217,D],["オールドファッション","🍩",293,D],["チョコファッション","🍩",330,D],["フレンチクルーラー","🍩",154,D],["エンゼルクリーム","🍩",201,D],["ゴールデンチョコレート","🍩",274,D],
@@ -154,14 +154,14 @@ function cloudInit(){
 }
 var sel={};
 var $=function(i){return document.getElementById(i)};
-function foods(){return BASE.concat(S.custom)}
+function foods(){return BASE.concat(S.custom.map(function(c){return [c[0],c[1],c[2],ADD]}))}
 function sum(a){return a.reduce(function(t,x){return t+x.kcal},0)}
 function sameDay(ts){return new Date(ts).toDateString()===new Date().toDateString()}
 var FILTER="すべて",QUERY="";
 function norm(s){return s.toLowerCase().replace(/[ぁ-ゖ]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+96)}).replace(/[\s　]/g,"")}
-function pre(f){var c=f[3];return(c&&c!==G&&c!==O)?c+" ":""}
+function pre(f){var c=f[3];return(c&&c!==G&&c!==O&&c!==ADD)?c+" ":""}
 function renderChips(){
- var c=["すべて"];foods().forEach(function(f){var k=f[3]||O;if(c.indexOf(k)<0)c.push(k)});
+ var c=["すべて"];foods().forEach(function(f){var k=f[3]||O;if(c.indexOf(k)<0)c.push(k)});if(c.indexOf(ADD)<0)c.push(ADD);
  var el=$("chips"),sl=el.scrollLeft;el.innerHTML="";
  c.forEach(function(k){var b=document.createElement("button");b.type="button";b.className="chip";b.textContent=k;b.setAttribute("aria-pressed",k===FILTER?"true":"false");b.onclick=function(){FILTER=k;renderGrid();};el.appendChild(b);});
  el.scrollLeft=sl;
@@ -181,7 +181,7 @@ function renderGrid(){
   b.onclick=function(){if(sel[i]){delete sel[i];b.setAttribute("aria-pressed","false");}else{sel[i]=1;b.setAttribute("aria-pressed","true");}renderBar();};
   g.appendChild(b);
  });
- if(!g.children.length){var nr=document.createElement("div");nr.className="noresult";nr.textContent="見つかりません。別の言葉で探すか、下の「カードを追加」で自分用のカードを作ってください。";g.appendChild(nr);}
+ if(!g.children.length){var nr=document.createElement("div");nr.className="noresult";nr.textContent=(FILTER===ADD&&!QUERY)?"まだ追加したカードはありません。下の「カードを追加」から追加できます。":"見つかりません。別の言葉で探すか、下の「カードを追加」で自分用のカードを作ってください。";g.appendChild(nr);}
 }
 function renderBar(){
  var ids=Object.keys(sel),b=$("go");
