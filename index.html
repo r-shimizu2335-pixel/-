@@ -98,6 +98,7 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <p class="hint" style="margin-top:18px">※ お店のカロリーは公開情報をもとにした目安です(サイズ・時期・メニュー改定で変わります)。「やせました」は回避したカロリーを身近な食べ物に例えた表示です。</p>
 </div>
 <div id="vWeek" hidden></div>
+<p class="hint" id="syncst" style="margin-top:14px"></p>
 </main>
 <div class="bar"><div><button class="go" id="go" disabled>食べ物を選んでね</button></div></div>
 <div class="toast" id="toast" role="status"></div>
@@ -117,7 +118,40 @@ var BASE=[
 ["から揚げ","🍗",400,O],["ショートケーキ","🍰",330,O],["ラーメン","🍜",750,O],["ポテチ(1袋)","🥔",330,O],["チョコ","🍫",280,O],["アイス","🍦",250,O],["菓子パン","🥐",400,O]];
 var S={custom:[],log:[]};
 function load(){try{var r=localStorage.getItem("skipcal");if(r){var d=JSON.parse(r);if(d&&d.log){S=d;if(!S.custom)S.custom=[];}}}catch(e){}}
-function save(){try{localStorage.setItem("skipcal",JSON.stringify(S));}catch(e){}}
+function save(){try{localStorage.setItem("skipcal",JSON.stringify(S));}catch(e){}cloudSave();}
+var CDB=null,CUID=null,CT=null;
+function st(t){var e=document.getElementById("syncst");if(e)e.textContent=t}
+function cloudSave(){
+ if(!CDB)return;
+ clearTimeout(CT);
+ CT=setTimeout(function(){
+  CDB.doc("data/users/"+CUID+"/state").set({custom:S.custom,log:S.log,t:Date.now()}).then(function(){st("きろくはアカウントに保存されています");},function(){st("きろくをアカウントに保存できませんでした(この端末だけに保存中・更新で消えることがあります)");});
+ },600);
+}
+function mergeS(d){
+ var ids={};S.log.forEach(function(x){ids[x.id]=1});
+ (Array.isArray(d.log)?d.log:[]).forEach(function(x){if(x&&x.id&&!ids[x.id]&&typeof x.kcal==="number"){S.log.push({id:String(x.id),name:String(x.name||""),emoji:String(x.emoji||"🍽️"),kcal:x.kcal,ts:+x.ts||0});ids[x.id]=1;}});
+ (Array.isArray(d.custom)?d.custom:[]).forEach(function(c){if(Array.isArray(c)&&c.length>=3&&!S.custom.some(function(y){return y[0]===c[0]&&y[2]===c[2]}))S.custom.push([String(c[0]),String(c[1]),+c[2]]);});
+ S.log.sort(function(p,q){return p.ts-q.ts});
+}
+function cloudInit(){
+ var local="きろくはこの端末だけに保存されています(更新で消えることがあります)";
+ if(!window.claude||!claude.use){st(local);return;}
+ Promise.all([claude.use("db"),claude.use("user")]).then(function(r){
+  var db=r[0],u=r[1];
+  if(!db||!u){st(local);return;}
+  return Promise.resolve(u.id()).then(function(id){
+   if(!id){st(local+"。ログインしていないためです");return;}
+   return db.doc("data/users/"+id+"/state").get().then(function(snap){
+    CDB=db;CUID=id;
+    var d=snap.exists?snap.data():null;
+    if(d)mergeS(d);
+    save();renderAll();
+    st("きろくをアカウントに保存しています…");
+   });
+  });
+ }).catch(function(){st(local);});
+}
 var sel={};
 var $=function(i){return document.getElementById(i)};
 function foods(){return BASE.concat(S.custom)}
@@ -313,20 +347,20 @@ function getAI(){
 function estimate(nm){
  var seq=aiSeq,k=$("ck"),h=$("addhint");
  getAI().then(function(s){
-  if(!s||seq!==aiSeq)return;
+  if(seq!==aiSeq)return;if(!s){h.textContent="この画面では自動で調べられません。公式サイトの数字を入れてください。";return;}
   h.textContent="カロリーを調べています…";
   return s("次の食べ物を1人前(日本で一般的な量)食べたときのおおよそのカロリーを、整数のkcalの数字だけで答えてください。数字以外は書かないでください。食べ物: "+nm,{modelTier:"quick"}).then(function(r){
    if(seq!==aiSeq)return;
    var m=String(r&&r.text||"").replace(/[,，]/g,"").match(/\d+/),n=m?parseInt(m[0],10):0;
    if(n>=1&&n<=5000&&(k.value===""||k.value===String(autoVal))){k.value=String(n);autoVal=n;h.textContent="AIによる目安です。必要であれば直してください。";}
-   else h.textContent="";
+   else h.textContent="調べても分かりませんでした。公式サイトの数字を入れてください。";
   });
- }).catch(function(){if(seq===aiSeq)h.textContent="";});
+ }).catch(function(){if(seq===aiSeq)h.textContent="調べられませんでした。公式サイトの数字を入れてください。";});
 }
 $("cn").addEventListener("input",fillKcal);
 $("t1").onclick=function(){setView("today")};$("t2").onclick=function(){setView("week")};
 $("q").oninput=function(){QUERY=this.value;renderGrid();};
-load();renderAll();
+load();renderAll();cloudInit();
 </script>
 <script>
 (function(){
