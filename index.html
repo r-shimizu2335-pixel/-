@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -68,7 +67,7 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <body>
 <main>
 <h1>🍃 すきっぷカロリー</h1>
-<div class="tabs" role="group" aria-label="ページの切り替え"><button class="tab" id="t1" type="button" aria-pressed="true">今日</button><button class="tab" id="t2" type="button" aria-pressed="false">一週間</button></div>
+<div class="tabs" role="group" aria-label="ページの切り替え"><button class="tab" id="t1" type="button" aria-pressed="true">今日</button><button class="tab" id="t2" type="button" aria-pressed="false">一週間</button><button class="tab" id="t3" type="button" aria-pressed="false">ランキング</button></div>
 <div id="vToday">
 <section class="hero" aria-live="polite">
 <p>今日我慢したカロリー</p>
@@ -87,7 +86,7 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <form class="add" id="addf" onsubmit="return false">
 <input id="cn" placeholder="食べ物の名前" maxlength="24" list="fl" autocomplete="off" aria-label="食べ物の名前"><datalist id="fl"></datalist>
 <input id="ck" type="number" inputmode="numeric" placeholder="kcal" min="1" max="5000" aria-label="カロリー">
-<button class="btn2" id="addb" type="button">カードを追加</button>
+<button class="btn2" id="aib" type="button">カロリーを調べる</button><button class="btn2" id="addb" type="button">カードを追加</button>
 </form>
 <p class="hint" id="addhint" style="margin-top:6px"></p>
 <section class="log">
@@ -98,6 +97,7 @@ h2{font-size:15px;margin:0 0 4px;font-weight:900}
 <p class="hint" style="margin-top:18px">※ お店のカロリーは公開情報をもとにした目安です(サイズ・時期・メニュー改定で変わります)。「やせました」は回避したカロリーを身近な食べ物に例えた表示です。</p>
 </div>
 <div id="vWeek" hidden></div>
+<div id="vRank" hidden></div>
 <p class="hint" id="syncst" style="margin-top:14px"></p>
 </main>
 <div class="bar"><div><button class="go" id="go" disabled>食べ物を選んでね</button></div></div>
@@ -125,10 +125,11 @@ function cloudSave(){
  if(!CDB)return;
  clearTimeout(CT);
  CT=setTimeout(function(){
-  CDB.doc("data/users/"+CUID+"/state").set({custom:S.custom,log:S.log,t:Date.now()}).then(function(){st("きろくはアカウントに保存されています");},function(){st("きろくをアカウントに保存できませんでした(この端末だけに保存中・更新で消えることがあります)");});
+  rankPush();CDB.doc("data/users/"+CUID+"/state").set({custom:S.custom,log:S.log,name:S.name||"",t:Date.now()}).then(function(){st("きろくはアカウントに保存されています");},function(){st("きろくをアカウントに保存できませんでした(この端末だけに保存中・更新で消えることがあります)");});
  },600);
 }
 function mergeS(d){
+ if(!S.name&&d.name)S.name=String(d.name).slice(0,12);
  var ids={};S.log.forEach(function(x){ids[x.id]=1});
  (Array.isArray(d.log)?d.log:[]).forEach(function(x){if(x&&x.id&&!ids[x.id]&&typeof x.kcal==="number"){S.log.push({id:String(x.id),name:String(x.name||""),emoji:String(x.emoji||"🍽️"),kcal:x.kcal,ts:+x.ts||0});ids[x.id]=1;}});
  (Array.isArray(d.custom)?d.custom:[]).forEach(function(c){if(Array.isArray(c)&&c.length>=3&&!S.custom.some(function(y){return y[0]===c[0]&&y[2]===c[2]}))S.custom.push([String(c[0]),String(c[1]),+c[2]]);});
@@ -144,6 +145,7 @@ function cloudInit(){
    if(!id){st(local+"。ログインしていないためです");return;}
    return db.doc("data/users/"+id+"/state").get().then(function(snap){
     CDB=db;CUID=id;
+    db.collection("ranking").onSnapshot(function(snap){RANKS=[];snap.docs.forEach(function(d){var x=d.data();if(x&&typeof x.name==="string")RANKS.push({uid:d.id,name:x.name.slice(0,12),week:+x.week||0,all:+x.all||0});});if(VIEW==="rank")renderRank();},function(){});
     var d=snap.exists?snap.data():null;
     if(d)mergeS(d);
     save();renderAll();
@@ -243,14 +245,57 @@ $("reset").onclick=function(){if(confirm("すべてのきろくを消します�
  window.addEventListener("pointerup",function(){down=false;});
  el.addEventListener("click",function(e){if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
 })();
+var VIEW="today",RK="week",RANKS=[];
+function totals(){var now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()-6).getTime(),w=0,a=0;S.log.forEach(function(x){a+=x.kcal;if(x.ts>=d0)w+=x.kcal});return {week:w,all:a}}
+function rankPush(){
+ if(!CDB||!S.name)return;
+ var t=totals();
+ CDB.doc("ranking/"+CUID).set({name:S.name,week:t.week,all:t.all,t:Date.now()}).catch(function(){});
+}
+function renderRank(){
+ var root=$("vRank");root.innerHTML="";
+ root.appendChild(mk("h2","","我慢したカロリーランキング"));
+ if(!CDB){root.appendChild(mk("div","empty","ランキングは、Claudeにログインして開いたときだけ使えます。"));return;}
+ if(!S.name){
+  root.appendChild(mk("p","hint","ランキングに出す名前を決めてください(メールアドレスは使いません)。名前は、このアプリを使う全員に見えます。"));
+  var f=mk("div","add"),inp=mk("input");inp.maxLength=12;inp.placeholder="名前(12文字まで)";inp.setAttribute("aria-label","ランキングの名前");
+  var b=mk("button","btn2","登録");b.type="button";
+  b.onclick=function(){var n=inp.value.trim();if(!n){toast("名前を入れてください");return;}S.name=n.slice(0,12);save();renderRank();toast("登録しました");};
+  f.appendChild(inp);f.appendChild(b);root.appendChild(f);return;
+ }
+ var me=mk("p","hint","あなたの名前: "+S.name+"  ");
+ var ch=mk("button","reset","名前を変える");ch.type="button";ch.style.display="inline";ch.style.margin="0";
+ ch.onclick=function(){S.name="";save();renderRank();};
+ me.appendChild(ch);root.appendChild(me);
+ var chips=mk("div","chips");
+ [["week","今週"],["all","これまで"]].forEach(function(p){
+  var c=mk("button","chip",p[1]);c.type="button";c.setAttribute("aria-pressed",RK===p[0]?"true":"false");
+  c.onclick=function(){RK=p[0];renderRank();};chips.appendChild(c);
+ });
+ root.appendChild(chips);
+ var t=totals(),list=RANKS.filter(function(x){return x.uid!==CUID}).map(function(x){return {uid:x.uid,name:x.name,v:RK==="week"?x.week:x.all}});
+ list.push({uid:CUID,name:S.name,v:RK==="week"?t.week:t.all});
+ list.sort(function(p,q){return q.v-p.v});
+ var med=["🥇","🥈","🥉"];
+ list.forEach(function(x,i){
+  var r=mk("div","row");if(x.uid===CUID)r.style.borderColor="var(--mint)";
+  r.appendChild(mk("span","e",i<3?med[i]:String(i+1)));
+  r.appendChild(mk("div","t",x.name));
+  r.appendChild(mk("b","",x.v.toLocaleString("ja-JP")+" kcal"));
+  root.appendChild(r);
+ });
+ root.appendChild(mk("p","hint","「今週」は今日までの7日間です。他の人の数字は、その人が最後に記録した時点のものです。"));
+}
 function mk(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
 function dkey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 function setView(v){
- $("vToday").hidden=(v!=="today");$("vWeek").hidden=(v!=="week");
+ $("vToday").hidden=(v!=="today");$("vWeek").hidden=(v!=="week");$("vRank").hidden=(v!=="rank");VIEW=v;
  $("t1").setAttribute("aria-pressed",v==="today"?"true":"false");
  $("t2").setAttribute("aria-pressed",v==="week"?"true":"false");
+ $("t3").setAttribute("aria-pressed",v==="rank"?"true":"false");
  document.querySelector(".bar").style.display=(v==="today"?"":"none");
  if(v==="week")renderWeek();
+ if(v==="rank")renderRank();
  window.scrollTo(0,0);
 }
 function renderWeek(){
@@ -313,7 +358,6 @@ function fillKcal(){
  if(v===null&&q.length>=1){src=lookupRef(q,r);if(src)v=src[2];}
  if(v===null){
   if(k.value===String(autoVal))k.value="";autoVal=null;
-  if(nm.length>=2&&k.value==="")aiT=setTimeout(function(){estimate(nm)},900);
  }else{k.value=String(v);autoVal=v;if(src)h.textContent="「"+src[0]+" "+src[1]+"」の数字です(出典:810810.co.jp カロリー表)";}
 }
 function lookupRef(q,r){
@@ -348,17 +392,22 @@ function estimate(nm){
  var seq=aiSeq,k=$("ck"),h=$("addhint");
  getAI().then(function(s){
   if(seq!==aiSeq)return;if(!s){h.textContent="この画面では自動で調べられません。公式サイトの数字を入れてください。";return;}
-  h.textContent="カロリーを調べています…";
+  h.textContent="カロリーを調べています…(許可の画面が出たら、許可してください)";
   return s("次の食べ物を1人前(日本で一般的な量)食べたときのおおよそのカロリーを、整数のkcalの数字だけで答えてください。数字以外は書かないでください。食べ物: "+nm,{modelTier:"quick"}).then(function(r){
    if(seq!==aiSeq)return;
    var m=String(r&&r.text||"").replace(/[,，]/g,"").match(/\d+/),n=m?parseInt(m[0],10):0;
    if(n>=1&&n<=5000&&(k.value===""||k.value===String(autoVal))){k.value=String(n);autoVal=n;h.textContent="AIによる目安です。必要であれば直してください。";}
    else h.textContent="調べても分かりませんでした。公式サイトの数字を入れてください。";
   });
- }).catch(function(){if(seq===aiSeq)h.textContent="調べられませんでした。公式サイトの数字を入れてください。";});
+ }).catch(function(e){if(seq!==aiSeq)return;var c=e&&e.code;h.textContent=c==="not_granted"?"許可されなかったため調べられません。もう一度押して、許可してください。":(c==="rate_limited"?"続けて調べすぎました。少し待ってからお試しください。":"調べられませんでした(エラー: "+(c||"不明")+")。公式サイトの数字を入れてください。");});
 }
 $("cn").addEventListener("input",fillKcal);
-$("t1").onclick=function(){setView("today")};$("t2").onclick=function(){setView("week")};
+$("aib").onclick=function(){
+ var nm=$("cn").value.trim(),k=$("ck");
+ if(!nm){toast("食べ物の名前を入れてください");return;}
+ k.value="";autoVal=null;aiSeq++;estimate(nm);
+};
+$("t1").onclick=function(){setView("today")};$("t2").onclick=function(){setView("week")};$("t3").onclick=function(){setView("rank")};
 $("q").oninput=function(){QUERY=this.value;renderGrid();};
 load();renderAll();cloudInit();
 </script>
